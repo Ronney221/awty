@@ -1,23 +1,30 @@
 package edu.washington.ronney.awty
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.provider.MediaStore
+import android.support.v4.app.ActivityCompat
+import android.telephony.SmsManager
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import android.support.v4.content.ContextCompat.startActivity
+
+
 
 class MainActivity : AppCompatActivity() {
 
      override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
 
         val message = findViewById<EditText>(R.id.message) as EditText
         val phone = findViewById<EditText>(R.id.phone) as EditText
@@ -29,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, AlarmReceiver::class.java)
 
         button.setOnClickListener {
-            if (button.text == "START") {
+              if (button.text == "START") {
                 //see if all 3 are filled out
                 //an EditText for the message I want to send,
                 //an EditText for the phone number to which to send it (which we will not do anything with for this part),
@@ -47,10 +54,15 @@ class MainActivity : AppCompatActivity() {
                     + "-" + phone.text.toString().substring(6) + ": " + message.text.toString())
 
                     intent.putExtra("toast", toast)
+                    intent.putExtra("message", message.text.toString())
+                    intent.putExtra("phone", phone.text.toString())
+
 
                     alarm.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(),
                             nagInterval.text.toString().toInt().toLong() * 1000 * 60,
                             PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT))
+
+                    Log.i("alarm", "set repeating succesful")
                 } else {
                     //could have more than one thing wrong
                     if (message.text.isEmpty()) {
@@ -81,6 +93,32 @@ class MainActivity : AppCompatActivity() {
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val toast= intent.getStringExtra("toast")
+        val message= intent.getStringExtra("message")
+        val phone= intent.getStringExtra("phone")
         Toast.makeText(context, toast, Toast.LENGTH_LONG).show()
+
+        val smsManager = SmsManager.getDefault()
+        smsManager.sendTextMessage(phone, null, message, null, null)
+
+        Log.i("check", "message sent")
+
+/*
+/* Attach Url is local (!) URL to file which should be sent */
+        val strAttachUrl = "android.resource://edu.washington.ronney.awty/raw/sound"
+
+/* Attach Type is a content type of file which should be sent */
+        val strAttachType = "Audio/mp3"
+
+        val sendIntent = Intent(Intent.ACTION_SEND)
+        sendIntent.setClassName("com.android.mms", "com.android.mms.ui.ComposeMessageActivity")
+        sendIntent.putExtra("address", "5555215554")
+        sendIntent.putExtra("sms_body", "Audio File")
+
+/* Adding The Attach */
+        sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(strAttachUrl))
+        sendIntent.type = strAttachType
+        sendIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(context, sendIntent, null)
+*/
     }
 }
